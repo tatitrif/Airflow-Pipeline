@@ -1,9 +1,13 @@
-import logging
 import os
-from datetime import datetime
 
 import dill
 import pandas as pd
+
+path = os.environ.get("PROJECT_PATH", ".")
+
+from datetime import datetime
+from config.logger import logging
+from config.settings import TRAIN_FULLPATH, MODEL_FULLPATH
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
@@ -14,11 +18,6 @@ from sklearn.preprocessing import FunctionTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-
-# Укажем путь к файлам проекта:
-# -> $PROJECT_PATH при запуске в Airflow
-# -> иначе - текущая директория при локальном запуске
-path = os.environ.get("PROJECT_PATH", ".")
 
 
 def filter_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -35,7 +34,7 @@ def filter_data(df: pd.DataFrame) -> pd.DataFrame:
         "lat",
         "long",
     ]
-    return df.drop(columns_to_drop, axis=1)
+    return df.drop(columns_to_drop, axis=1, errors="ignore")
 
 
 def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
@@ -48,8 +47,8 @@ def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
     boundaries = calculate_outliers(df["year"])
-    df.loc[df["year"] < boundaries[0], "year"] = round(boundaries[0])
-    df.loc[df["year"] > boundaries[1], "year"] = round(boundaries[1])
+    df.loc[df["year"] < boundaries[0], "year"] = round(boundaries[0]) + 1
+    df.loc[df["year"] > boundaries[1], "year"] = round(boundaries[1]) - 1
     return df
 
 
@@ -69,7 +68,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def pipeline() -> None:
-    df = pd.read_csv(f"{path}/data/train/data_train.csv")
+    df = pd.read_csv(TRAIN_FULLPATH)
 
     X = df.drop("price_category", axis=1)
     y = df["price_category"]
@@ -127,14 +126,24 @@ def pipeline() -> None:
     )
 
     best_pipe.fit(X, y)
-    model_filename = (
-        f'{path}/data/models/cars_pipe_{datetime.now().strftime("%Y%m%d%H%M")}.pkl'
-    )
 
-    with open(model_filename, "wb") as file:
-        dill.dump(best_pipe, file)
+    with open(MODEL_FULLPATH, "wb") as file:
+        dill.dump(
+            {
+                "model": best_pipe,
+                "metadata": {
+                    "name": "Price Category prediction model",
+                    "author": "Tatiana Trifonova",
+                    "version": 1,
+                    "date": datetime.now(),
+                    "type": type(best_pipe.named_steps["classifier"]).__name__,
+                    "accuracy": best_score,
+                },
+            },
+            file,
+        )
 
-    logging.info(f"Model is saved as {model_filename}")
+    logging.info(f"Model is saved as {MODEL_FULLPATH}")
 
 
 if __name__ == "__main__":

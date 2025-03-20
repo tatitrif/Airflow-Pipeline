@@ -1,3 +1,6 @@
 __pycache__
 .idea
 *.lock
+data/models/*.pkl
+data/predictions/*.csv
+logs/*.log

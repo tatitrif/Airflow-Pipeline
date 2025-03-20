@@ -16,6 +16,23 @@
 
 ```
 
+### Apache Airflow
+
+Платформа позволяет контролировать создания, выполнения, мониторинга и оркестровки потоков операций по обработке данных.
+
+`airflow db init # create db`
+
+```
+# create default  admin
+airflow users create \
+    --username airflow \
+    --firstname Airflow \
+    --lastname Apache \
+    --role Admin \
+    --email airflow@example.com \
+    --password airflow
+```
+
 ### Хуки
 
 Хуки - это скрипты, которые автоматически выполняются при наступлении определённых событий.
