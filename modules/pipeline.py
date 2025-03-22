@@ -122,7 +122,7 @@ def pipeline() -> None:
             best_pipe = pipe
 
     logging.info(
-        f'best model: {type(best_pipe.named_steps["classifier"]).__name__}, accuracy: {best_score:.4f}'
+        f"best model: {type(best_pipe.named_steps['classifier']).__name__}, accuracy: {best_score:.4f}"
     )
 
     best_pipe.fit(X, y)
